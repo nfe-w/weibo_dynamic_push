@@ -1,0 +1,82 @@
+# !/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# @Time: 2021/4/23 16:32
+
+import json
+import re
+from collections import deque
+
+import util
+from logger import logger
+from push import push
+
+DYNAMIC_DICT = {}
+LEN_OF_DEQUE = 20
+
+
+def query_dynamic(uid=None):
+    if uid is None:
+        return
+    query_url = 'https://m.weibo.cn/api/container/getIndex?type=uid&value={uid}&containerid=107603{uid}&count=25'.format(uid=uid)
+    headers = get_headers(uid)
+    response = util.requests_get(query_url, '查询动态状态', headers=headers, use_proxy=True)
+    if util.check_response_is_ok(response):
+        result = json.loads(str(response.content, 'utf-8'))
+        cards = result['data']['cards']
+        if len(cards) == 0:
+            logger.info('【查询动态状态】【{uid}】动态列表为空'.format(uid=uid))
+            return
+
+        card = cards[0]
+        mblog = card['mblog']
+        mblog_id = mblog['id']
+        user = mblog['user']
+        screen_name = user['screen_name']
+
+        if DYNAMIC_DICT.get(uid, None) is None:
+            DYNAMIC_DICT[uid] = deque(maxlen=LEN_OF_DEQUE)
+            for index in range(LEN_OF_DEQUE):
+                if index < len(cards):
+                    DYNAMIC_DICT[uid].appendleft(cards[index]['mblog']['id'])
+            logger.info('【查询动态状态】【{screen_name}】动态初始化：{queue}'.format(screen_name=screen_name, queue=DYNAMIC_DICT[uid]))
+            return
+
+        if mblog_id not in DYNAMIC_DICT[uid]:
+            previous_mblog_id = DYNAMIC_DICT[uid].pop()
+            DYNAMIC_DICT[uid].append(previous_mblog_id)
+            logger.info('【查询动态状态】【{}】上一条动态id[{}]，本条动态id[{}]'.format(screen_name, previous_mblog_id, mblog_id))
+            DYNAMIC_DICT[uid].append(mblog_id)
+            logger.info(DYNAMIC_DICT[uid])
+
+            card_type = card['card_type']
+            if card_type not in [9]:
+                logger.info('【查询动态状态】【{screen_name}】动态有更新，但不在需要推送的动态类型列表中'.format(screen_name=screen_name))
+                return
+
+            content = None
+            pic_url = None
+            jump_url = None
+            if card_type == 9:
+                text = mblog['text']
+                text = re.sub(r'<[^>]+>', '', text)
+                content = mblog['raw_text'] if mblog.get('raw_text', None) is not None else text
+                pic_url = mblog.get('original_pic', None)
+                jump_url = card['scheme']
+            logger.info('【查询动态状态】【{screen_name}】动态有更新，准备推送：{content}'.format(screen_name=screen_name, content=content[:30]))
+            push.push_for_weibo_dynamic(screen_name, mblog_id, content, pic_url, jump_url)
+
+
+def get_headers(uid):
+    return {
+        'accept': 'application/json, text/plain, */*',
+        'accept-encoding': 'gzip, deflate, br',
+        'accept-language': 'zh-CN,zh;q=0.9',
+        'cache-control': 'no-cache',
+        'pragma': 'no-cache',
+        'mweibo-pwa': '1',
+        'referer': 'https://m.weibo.cn/u/{}'.format(uid),
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'x-requested-with': 'XMLHttpRequest',
+    }
