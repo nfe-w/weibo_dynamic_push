@@ -29,6 +29,14 @@ def query_dynamic(uid=None):
             return
 
         card = cards[0]
+
+        # 跳过置顶
+        if card['mblog'].get('isTop', None) == 1:
+            # 如果只有置顶，则跳过
+            if len(cards) == 1:
+                return
+            card = cards[1]
+
         mblog = card['mblog']
         mblog_id = mblog['id']
         user = mblog['user']
