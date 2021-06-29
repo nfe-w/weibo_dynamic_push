@@ -78,7 +78,7 @@ def query_dynamic(uid=None):
 def get_headers(uid):
     return {
         'accept': 'application/json, text/plain, */*',
-        'accept-encoding': 'gzip, deflate, br',
+        'accept-encoding': 'gzip, deflate',
         'accept-language': 'zh-CN,zh;q=0.9',
         'cache-control': 'no-cache',
         'pragma': 'no-cache',
