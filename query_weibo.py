@@ -3,8 +3,10 @@
 #
 # @Time: 2021/4/23 16:32
 
+import datetime
 import json
 import re
+import time
 from collections import deque
 
 import util
@@ -12,7 +14,7 @@ from logger import logger
 from push import push
 
 DYNAMIC_DICT = {}
-LEN_OF_DEQUE = 20
+LEN_OF_DEQUE = 50
 
 
 def query_dynamic(uid=None):
@@ -62,6 +64,16 @@ def query_dynamic(uid=None):
                 logger.info('【查询动态状态】【{screen_name}】动态有更新，但不在需要推送的动态类型列表中'.format(screen_name=screen_name))
                 return
 
+            # 如果动态发送日期早于昨天，则跳过（既能避免因api返回历史内容导致的误推送，也可以兼顾到前一天停止检测后产生的动态）
+            created_at = time.strptime(mblog['created_at'], '%a %b %d %H:%M:%S %z %Y')
+            created_at_ts = time.mktime(created_at)
+            yesterday = (datetime.datetime.now() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
+            yesterday_ts = time.mktime(time.strptime(yesterday, '%Y-%m-%d'))
+            if created_at_ts < yesterday_ts:
+                logger.info('【查询动态状态】【{screen_name}】动态有更新，但动态发送时间早于今天，可能是历史动态，不予推送'.format(screen_name=screen_name))
+                return
+            dynamic_time = time.strftime('%Y-%m-%d %H:%M:%S', created_at)
+
             content = None
             pic_url = None
             jump_url = None
@@ -72,7 +84,7 @@ def query_dynamic(uid=None):
                 pic_url = mblog.get('original_pic', None)
                 jump_url = card['scheme']
             logger.info('【查询动态状态】【{screen_name}】动态有更新，准备推送：{content}'.format(screen_name=screen_name, content=content[:30]))
-            push.push_for_weibo_dynamic(screen_name, mblog_id, content, pic_url, jump_url)
+            push.push_for_weibo_dynamic(screen_name, mblog_id, content, pic_url, jump_url, dynamic_time)
 
 
 def get_headers(uid):

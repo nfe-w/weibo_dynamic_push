@@ -30,7 +30,7 @@ class Push(object):
         self.wechat_agent_id = global_config.get_raw('push_wechat', 'agent_id')
         self.wechat_corp_secret = global_config.get_raw('push_wechat', 'corp_secret')
 
-    def push_for_weibo_dynamic(self, username=None, mblog_id=None, content=None, pic_url=None, jump_url=None):
+    def push_for_weibo_dynamic(self, username=None, mblog_id=None, content=None, pic_url=None, jump_url=None, dynamic_time=None):
         """
         微博动态提醒推送
         :param username: 博主名
@@ -38,13 +38,14 @@ class Push(object):
         :param content: 动态内容
         :param pic_url: 图片地址
         :param jump_url: 跳转地址
+        :param dynamic_time: 动态发送时间
         """
         if username is None or mblog_id is None or content is None:
             logger.error('【推送】缺少参数，username:[{}]，mblog_id:[{}]，content:[{}]'.format(username, mblog_id, content[:30]))
             return
         title_msg = '发微博了'
         title = '【{username}】{title_msg}'.format(username=username, title_msg=title_msg)
-        content = content[:100] + (content[100:] and '...')
+        content = '{content}[{dynamic_time}]'.format(content=content[:100] + (content[100:] and '...'), dynamic_time=dynamic_time)
         self._common_push(title, content, jump_url, pic_url)
         pass
 
