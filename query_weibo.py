@@ -33,7 +33,7 @@ def query_dynamic(uid=None):
         card = cards[0]
 
         # 跳过置顶
-        if card['mblog'].get('isTop', None) == 1:
+        if card['mblog'].get('isTop', None) == 1 or card['mblog'].get('mblogtype', None) == 2:
             # 如果只有置顶，则跳过
             if len(cards) == 1:
                 return
