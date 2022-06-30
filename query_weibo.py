@@ -38,6 +38,11 @@ def query_dynamic(uid=None):
             if len(cards) == 1:
                 return
             card = cards[1]
+            # 新版微博支持两个置顶
+            if card['mblog'].get('isTop', None) == 1 or card['mblog'].get('mblogtype', None) == 2:
+                if len(cards) == 2:
+                    return
+                card = cards[2]
 
         mblog = card['mblog']
         mblog_id = mblog['id']
