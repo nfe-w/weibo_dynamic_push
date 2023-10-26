@@ -12,6 +12,16 @@
 
 定时检测指定博主的动态，如果发生变化进行推送
 
+## Docker
+
+```sh
+# 构建镜像
+docker build -t nfew/weibo_dynamic_push:latest .
+
+# 启动容器
+docker run -d -v ~/config_weibo.ini:/mnt/config_weibo.ini --name weibo_dynamic_push nfew/weibo_dynamic_push:latest
+```
+
 ## 运行环境
 
 - [Python 3](https://www.python.org/)
